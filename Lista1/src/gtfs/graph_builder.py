@@ -32,31 +32,35 @@ def is_service_active(service_id: str, date_str: str, calendars: dict[str, Calen
     return False
 
 
-def build_transfer_edges(stops: dict[str, Stop]) -> list[GraphEdge]:
-    platforms = {}
-    for stop in stops.values():
-        if stop.location_type == 0 and stop.parent_station:
-            if stop.parent_station not in platforms:
-                platforms[stop.parent_station] = []
-            platforms[stop.parent_station].append(stop.stop_id)
+# def build_transfer_edges(stops: dict[str, Stop]) -> list[GraphEdge]:
+#     platforms = {}
+#     for stop in stops.values():
+#         if stop.location_type == 0 and stop.parent_station:
+#             if stop.parent_station not in platforms:
+#                 platforms[stop.parent_station] = []
+#             platforms[stop.parent_station].append(stop.stop_id)
     
-    transfer_edges = []
-    for parent, stop_ids in platforms.items():
-        for a, b in permutations(stop_ids, 2):
-            transfer_edges.append(GraphEdge(
-                start_stop_id=a,
-                end_stop_id=b,
-                departure_time=0,
-                arrival_time=0,
-                travel_time=2,
-                route_name="TRANSFER",
-                trip_id=""
-            ))
-    return transfer_edges
+#     transfer_edges = []
+#     for parent, stop_ids in platforms.items():
+#         for a, b in permutations(stop_ids, 2):
+#             transfer_edges.append(GraphEdge(
+#                 start_stop_id=a,
+#                 end_stop_id=b,
+#                 departure_time=0,
+#                 arrival_time=0,
+#                 travel_time=2,
+#                 route_name="TRANSFER",
+#                 trip_id=""
+#             ))
+#     return transfer_edges
     
-
+def resolve_stop(stop_id: str, stops: dict[str, Stop]) -> str:
+    stop = stops.get(stop_id)
+    if stop and stop.location_type == 0 and stop.parent_station:
+        return stop.parent_station
+    return stop_id
     
-def build_trip_edges(routes: dict[str, Route], trips: dict[str, Trip], stop_times: dict[str, list[StopTime]], calendars: dict[str, Calendar], calendar_dates: dict[str, list[CalendarDate]], date_str: str) -> list[GraphEdge]:
+def build_trip_edges(routes: dict[str, Route], stops: dict[str, Stop], trips: dict[str, Trip], stop_times: dict[str, list[StopTime]], calendars: dict[str, Calendar], calendar_dates: dict[str, list[CalendarDate]], date_str: str) -> list[GraphEdge]:
     trip_edges = []
     
     for trip_id, trip in trips.items():
@@ -80,8 +84,8 @@ def build_trip_edges(routes: dict[str, Route], trips: dict[str, Trip], stop_time
                 continue
             
             edge = GraphEdge(
-                start_stop_id=start_stop_time.stop_id,
-                end_stop_id=end_stop_time.stop_id,
+                start_stop_id=resolve_stop(start_stop_time.stop_id, stops),
+                end_stop_id=resolve_stop(end_stop_time.stop_id, stops),
                 departure_time=start_stop_time.departure_time,
                 arrival_time=end_stop_time.arrival_time,
                 travel_time=travel,
@@ -92,11 +96,22 @@ def build_trip_edges(routes: dict[str, Route], trips: dict[str, Trip], stop_time
     return trip_edges
 
 def build_graph(routes: dict[str, Route], stops: dict[str, Stop], trips: dict[str, Trip], stop_times: dict[str, list[StopTime]], calendars: dict[str, Calendar], calendar_dates: dict[str, list[CalendarDate]], date_str: str) -> list[GraphEdge]:
-    trip_edges = build_trip_edges(routes, trips, stop_times, calendars, calendar_dates, date_str)
-    transfer_edges = build_transfer_edges(stops)
-    return trip_edges + transfer_edges
+    trip_edges = build_trip_edges(routes, stops, trips, stop_times, calendars, calendar_dates, date_str)
+    # transfer_edges = build_transfer_edges(stops)
+    return trip_edges 
 
-   
+
+def edges_to_adjacency_list(edges: list[GraphEdge]) -> dict[str, list[GraphEdge]]:
+    adjacency_list = {}
+    for edge in edges:
+        if edge.start_stop_id not in adjacency_list:
+            adjacency_list[edge.start_stop_id] = []
+        adjacency_list[edge.start_stop_id].append(edge)
+    return adjacency_list
+
+
+
+#    Helper functions for printing graph edges
 
 def convert_time(minutes: int) -> str:
     hours = minutes // 60
@@ -118,4 +133,4 @@ def print_graph_edges(graph: list[GraphEdge], stops: dict[str, Stop], trips: dic
         end_stop = stops.get(edge.end_stop_id)
         if not start_stop or not end_stop:
             continue
-        print(f"{start_stop.stop_name}{' platform: ' + start_stop.platform_code if start_stop.platform_code else ''} -> {end_stop.stop_name}{' platform: ' + end_stop.platform_code if end_stop.platform_code else ''} | Departure: {convert_time(edge.departure_time)} | Arrival: {convert_time(edge.arrival_time)} | Travel Time: {convert_time(edge.travel_time)} | Route: {edge.route_name} | Trip ID: {edge.trip_id} | Direction: {get_direction(edge, trips)}")
+        print(f"{start_stop.stop_name} ({start_stop.stop_id}) -> {end_stop.stop_name} ({end_stop.stop_id}) | Departure: {convert_time(edge.departure_time)} | Arrival: {convert_time(edge.arrival_time)} | Travel Time: {convert_time(edge.travel_time)} | Route: {edge.route_name} | Trip ID: {edge.trip_id} | Direction: {get_direction(edge, trips)}")
