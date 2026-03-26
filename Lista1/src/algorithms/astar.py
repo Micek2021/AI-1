@@ -1,6 +1,20 @@
 import heapq
+import math
 from gtfs.graph_builder import GraphEdge
 from gtfs.models import Stop
+
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371 
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    return R * c
 
 def heuristic(stop_id: str, end_stop_id: str, stops: dict[str, Stop]) -> int:
     stop = stops.get(stop_id)
@@ -9,13 +23,10 @@ def heuristic(stop_id: str, end_stop_id: str, stops: dict[str, Stop]) -> int:
     if stop is None or end_stop is None:
         return 0
     
-    lat_diff = abs(stop.stop_lat - end_stop.stop_lat)
-    lon_diff = abs(stop.stop_lon - end_stop.stop_lon)
+    distance_km = haversine_distance(stop.stop_lat, stop.stop_lon, end_stop.stop_lat, end_stop.stop_lon)
+    estimated_time_minutes = distance_km / 80 * 60  # Konwersja na minuty przy vśr = 80 km/h
     
-    distance_km = (lat_diff + lon_diff) * 111  
-    estimated_time = distance_km / 80 * 60  
-    
-    return int(estimated_time)
+    return int(estimated_time_minutes)
 
 def astar_time(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_id: str, start_time: int, stops: dict[str, Stop]) -> list[GraphEdge]:
     counter = 0
