@@ -13,7 +13,7 @@ def heuristic(stop_id: str, end_stop_id: str, stops: dict[str, Stop]) -> int:
     lon_diff = abs(stop.stop_lon - end_stop.stop_lon)
     
     distance_km = (lat_diff + lon_diff) * 111  
-    estimated_time = distance_km / 30 * 60  
+    estimated_time = distance_km / 80 * 60  
     
     return int(estimated_time)
 
@@ -44,22 +44,28 @@ def astar_time(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_i
     
     return []             
 
-def heuristic_transfer(stop_id: str, end_stop_id: str, graph: dict[str, list[GraphEdge]]) -> int:
+def build_trips_arriving(graph: dict[str, list[GraphEdge]]) -> dict[str, set[str]]:
+    trips_arriving = {}
+    for edges in graph.values():
+        for edge in edges:
+            trips_arriving.setdefault(edge.end_stop_id, set()).add(edge.trip_id)
+    return trips_arriving
+
+def build_trips_departing(graph: dict[str, list[GraphEdge]]) -> dict[str, set[str]]:
+    return {stop_id: {edge.trip_id for edge in edges} for stop_id, edges in graph.items()}
+
+def heuristic_transfer(stop_id: str, end_stop_id: str, trips_departing: dict[str, set[str]], trips_arriving: dict[str, set[str]]) -> int:
     if stop_id == end_stop_id:
         return 0
-    
-    trips_at_current = {edge.trip_id for edge in graph.get(stop_id, [])}
-  
-    trips_at_end = {edge.trip_id for edge in graph.get(end_stop_id, [])}
-    
-    if trips_at_current & trips_at_end:
-        return 0
-    
-    return 1
+    trips_at_current = trips_departing.get(stop_id, set())
+    trips_at_end = trips_arriving.get(end_stop_id, set())
+    return 0 if trips_at_current & trips_at_end else 1
 
 def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_id: str, start_time: int) -> list[GraphEdge]:
     counter = 0
-    h0 = heuristic_transfer(start_stop_id, end_stop_id, graph)
+    trips_arriving = build_trips_arriving(graph)
+    trips_departing = build_trips_departing(graph)
+    h0 = heuristic_transfer(start_stop_id, end_stop_id, trips_departing, trips_arriving)
     queue = [(h0, 0, start_time, counter, start_stop_id, '', [])]
     best = {(start_stop_id, ''): (0, start_time)}
     
@@ -85,7 +91,7 @@ def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_st
             
             if new_best < best.get(new_key, (float('inf'), float('inf'))):
                 best[new_key] = new_best
-                h = heuristic_transfer(edge.end_stop_id, end_stop_id, graph)
+                h = heuristic_transfer(edge.end_stop_id, end_stop_id, trips_departing, trips_arriving)
                 counter += 1
                 heapq.heappush(queue, (new_transfers + h, new_transfers, new_time, counter, edge.end_stop_id, edge.trip_id, path + [edge]))
                 
