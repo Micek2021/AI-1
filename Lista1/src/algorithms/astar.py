@@ -45,21 +45,27 @@ def astar_time(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_i
     return []             
 
 def heuristic_transfer(stop_id: str, end_stop_id: str, graph: dict[str, list[GraphEdge]]) -> int:
-    for edge in graph.get(stop_id, []):
-        for dest_edge in graph.get(edge.end_stop_id, []):
-            if dest_edge.trip_id == edge.trip_id and dest_edge.end_stop_id == end_stop_id:
-                return 0
+    if stop_id == end_stop_id:
+        return 0
+    
+    trips_at_current = {edge.trip_id for edge in graph.get(stop_id, [])}
+  
+    trips_at_end = {edge.trip_id for edge in graph.get(end_stop_id, [])}
+    
+    if trips_at_current & trips_at_end:
+        return 0
+    
     return 1
 
 def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_id: str, start_time: int) -> list[GraphEdge]:
     counter = 0
-    queue = [(0, start_time, counter, start_time, start_stop_id, '', [])]
+    h0 = heuristic_transfer(start_stop_id, end_stop_id, graph)
+    queue = [(h0, 0, start_time, counter, start_stop_id, '', [])]
     best = {(start_stop_id, ''): (0, start_time)}
     
     while queue:
-        current_transfers, _, __, current_time, current_stop, current_trip, path = heapq.heappop(queue)
-        print(f"Queue size: {len(queue)}, current: {current_stop}, transfers: {current_transfers}")
-        print(f"Edges from start: {len(graph.get(start_stop_id, []))}")
+        _, current_transfers, current_time, __, current_stop, current_trip, path = heapq.heappop(queue)
+        
         if current_stop == end_stop_id:
             return path
         
@@ -79,7 +85,8 @@ def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_st
             
             if new_best < best.get(new_key, (float('inf'), float('inf'))):
                 best[new_key] = new_best
+                h = heuristic_transfer(edge.end_stop_id, end_stop_id, graph)
                 counter += 1
-                heapq.heappush(queue, (new_transfers, new_time, counter, new_time, edge.end_stop_id, edge.trip_id, path + [edge]))
+                heapq.heappush(queue, (new_transfers + h, new_transfers, new_time, counter, edge.end_stop_id, edge.trip_id, path + [edge]))
                 
     return []
