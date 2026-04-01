@@ -1,7 +1,7 @@
 import random
 from gtfs.graph_builder import GraphEdge
-from gtfs.models import Stop
 from algorithms.dijkstra import dijkstra
+from algorithms.astar import astar_transfer
 
 
 def calculate_route_cost_time(graph: dict[str, list[GraphEdge]], route: list[str], start_time: int) -> tuple[int, int]:
@@ -9,7 +9,7 @@ def calculate_route_cost_time(graph: dict[str, list[GraphEdge]], route: list[str
     total_transfers = 0
     
     for i in range(len(route) - 1):
-        path, arrival_time, transfers = dijkstra(graph, route[i], route[i+1], total_time)
+        _, arrival_time, transfers = dijkstra(graph, route[i], route[i+1], total_time)
         if arrival_time == float('inf'):
             return float('inf'), float('inf')
         total_time = arrival_time
@@ -23,7 +23,12 @@ def calculate_route_cost_transfers(graph: dict[str, list[GraphEdge]], route: lis
     total_transfers = 0
     
     for i in range(len(route) - 1):
-        path, arrival_time, transfers = dijkstra(graph, route[i], route[i+1], total_time)
+        if route[i] == route[i + 1]:
+            arrival_time, transfers = total_time, 0
+        else:
+            path, arrival_time, transfers = astar_transfer(graph, route[i], route[i + 1], total_time)
+            if not path:
+                return float('inf'), float('inf')
         if arrival_time == float('inf'):
             return float('inf'), float('inf')
         total_time = arrival_time
@@ -90,7 +95,7 @@ def tabu_search_time_basic(graph: dict[str, list[GraphEdge]], start: str, target
     return s_best, best_time, best_transfers
 
 #b
-def tabu_search_time_variable_t(graph: dict[str, list[GraphEdge]], start: str, targets: list[str], start_time: int, max_iterations: int = 100) -> tuple[list[str], int, int]:
+def tabu_search_time_variable_t(graph: dict[str, list[GraphEdge]], start: str, targets: list[str], start_time: int, max_iterations: int = 10000) -> tuple[list[str], int, int]:
     route = [start] + targets + [start]
     s_best = route[:]
     

@@ -24,7 +24,7 @@ def heuristic(stop_id: str, end_stop_id: str, stops: dict[str, Stop]) -> int:
         return 0
     
     distance_km = haversine_distance(stop.stop_lat, stop.stop_lon, end_stop.stop_lat, end_stop.stop_lon)
-    estimated_time_minutes = distance_km / 80 * 60  # Konwersja na minuty przy vśr = 80 km/h
+    estimated_time_minutes = distance_km / 80 * 60  
     
     return int(estimated_time_minutes)
 
@@ -72,7 +72,7 @@ def heuristic_transfer(stop_id: str, end_stop_id: str, trips_departing: dict[str
     trips_at_end = trips_arriving.get(end_stop_id, set())
     return 0 if trips_at_current & trips_at_end else 1
 
-def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_id: str, start_time: int) -> list[GraphEdge]:
+def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_stop_id: str, start_time: int) -> tuple[list[GraphEdge], int, int]:
     counter = 0
     trips_arriving = build_trips_arriving(graph)
     trips_departing = build_trips_departing(graph)
@@ -84,7 +84,7 @@ def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_st
         _, current_transfers, current_time, __, current_stop, current_trip, path = heapq.heappop(queue)
         
         if current_stop == end_stop_id:
-            return path
+            return path, current_time, current_transfers
         
         key = (current_stop, current_trip)
         if (current_transfers, current_time) > best.get(key, (float('inf'), float('inf'))):
@@ -106,4 +106,4 @@ def astar_transfer(graph: dict[str, list[GraphEdge]], start_stop_id: str, end_st
                 counter += 1
                 heapq.heappush(queue, (new_transfers + h, new_transfers, new_time, counter, edge.end_stop_id, edge.trip_id, path + [edge]))
                 
-    return []
+    return [], float('inf'), float('inf')
