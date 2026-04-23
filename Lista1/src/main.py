@@ -92,9 +92,12 @@ def run_dijkstra_mode(start_name: str, end_name: str, start_time: int, date_str:
     
     print_graph_edges(path, stops, trips)
     
+    print(f"\n{'='*80}")
     print(f"  Czas przybycia: {convert_time(arrival_time)}", file=sys.stderr)
     print(f"  Liczba przesiadek: {transfers}", file=sys.stderr)
     print(f"  Czas obliczeń: {elapsed:.3f}s", file=sys.stderr)
+    print(f"  {'='*80}")
+
 
 def run_astar_mode(start_name: str, end_name: str, criteria: str, start_time: int, date_str: str):
     start_id = resolve_stop_name(start_name)
@@ -137,6 +140,7 @@ def run_astar_mode(start_name: str, end_name: str, criteria: str, start_time: in
     print_graph_edges(result, stops, trips)
     
     if result:
+        print(f"\n{'='*80}")
         print(f"  Czas przybycia: {convert_time(final_time)}", file=sys.stderr)
         print(f"  Liczba przesiadek: {num_transfers}", file=sys.stderr)
         print(f"  Czas obliczeń: {elapsed:.3f}s", file=sys.stderr)
