@@ -1,40 +1,33 @@
-#include <iostream>
-#include <chrono>
-#include "board/board.h"
-#include "algortihms/evaluator.h"
-#include "algortihms/Agent.h"
+#include "board.h"
+#include "evaluator.h"
+#include "agent.h"
+#include "test_benchmark.h"
+#include "test_game.h"
+#include "test_tournament.h"
+#include "test_genetic.h"
 
 int main() {
-    std::ios::sync_with_stdio(true);
-    Board board;
-    Evaluator evaluator({3, 2, 3, 1, 1}, true);
-    Agent agent;
-    int depth = 3;
-    int rounds = 0;
+    int depth = 2;
 
-    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<NamedEvaluator> competitors = {
+        {"FluidAggSides",       Evaluator({8, 17, 18, 6, 4}, false)},
+        {"FluidAggCenter",      Evaluator({16, 17, 12, 4, 5}, true)},
+        {"StructBalSides",      Evaluator({20, 9, 4, 17, 13}, false)},
+        {"StructBalCenter",     Evaluator({16, 10, 5, 17, 13}, true)},
+        {"StructCovSides",      Evaluator({20, 5, 4, 17, 20}, false)},
+        {"StructCovCenter",     Evaluator({16, 5, 4, 17, 16}, true)}
+    };
 
-    while (board.getGameState() == ongoing) {
-        Move white = agent.getBestMove(board, white_player, evaluator, depth);
-        board.makeMove(white);
-        rounds++;
-        std::cout << board << std::endl;
-        if (board.getGameState() != ongoing) break;
+    runTournament(competitors, depth);
 
-        Move black = agent.getBestMove(board, black_player, evaluator, depth);
-        board.makeMove(black);
-        rounds++;
-        std::cout << board << std::endl;
-    }
+    Evaluator FluidAggSides({8, 17, 18, 6, 4}, false);
+    Evaluator FluidAggCenter({16, 17, 12, 4, 5}, true);
 
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "----------------KONIEC GRY----------------" << std::endl;
-    std::cout << board << std::endl;
-    std::cout << "Rundy: " << rounds << std::endl;
-    std::cout << (board.getGameState() == white_won ? "Wygral bialy" : "Wygral czarny") << std::endl;
+    runGame(FluidAggCenter, FluidAggSides, depth);
 
-    std::cerr << "Odwiedzone wezly: " << agent.getNodesVisited() << std::endl;
-    std::cerr << "Czas: " << duration.count() << " microseconds" << std::endl;
+    runBenchmark(depth);
+
+    runGenetic(50, 30, 2);
+
     return 0;
 }

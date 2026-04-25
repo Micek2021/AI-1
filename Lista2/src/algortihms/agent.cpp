@@ -5,7 +5,7 @@
 #include "agent.h"
 
 
-int Agent::minimax(Board &board, player p, player maximising, const Evaluator &evaluator, int depth) {
+int Agent::miniMax(Board &board, player p, player maximising, const Evaluator &evaluator, int depth) {
     nodesVisited++;
 
     if (depth == 0 || board.getGameState() != ongoing) {
@@ -21,7 +21,7 @@ int Agent::minimax(Board &board, player p, player maximising, const Evaluator &e
         int best = INT_MIN;
         for (auto move : moves) {
             board.makeMove(move);
-            int value = minimax(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1);
+            int value = miniMax(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1);
             board.undoMove(move);
             if (value > best) best = value;
         }
@@ -30,7 +30,7 @@ int Agent::minimax(Board &board, player p, player maximising, const Evaluator &e
         int best = INT_MAX;
         for (auto move : moves) {
             board.makeMove(move);
-            int value = minimax(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1);
+            int value = miniMax(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1);
             board.undoMove(move);
             if (value < best) best = value;
         }
@@ -38,7 +38,7 @@ int Agent::minimax(Board &board, player p, player maximising, const Evaluator &e
     }
 }
 
-int Agent::alphabeta(Board &board, player p, player maximising, const Evaluator &evaluator, int depth, int alpha, int beta) {
+int Agent::alphaBeta(Board &board, player p, player maximising, const Evaluator &evaluator, int depth, int alpha, int beta) {
     nodesVisited++;
 
     if (depth == 0 || board.getGameState() != ongoing) {
@@ -53,7 +53,7 @@ int Agent::alphabeta(Board &board, player p, player maximising, const Evaluator 
     if (p == maximising) {
         for (auto move : moves) {
             board.makeMove(move);
-            int value = alphabeta(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1, alpha, beta);
+            int value = alphaBeta(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1, alpha, beta);
             board.undoMove(move);
             if (value > alpha) alpha = value;
             if (beta <= alpha) break;
@@ -62,7 +62,7 @@ int Agent::alphabeta(Board &board, player p, player maximising, const Evaluator 
     } else {
         for (auto move : moves) {
             board.makeMove(move);
-            int value = alphabeta(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1, alpha, beta);
+            int value = alphaBeta(board, p == white_player ? black_player : white_player, maximising, evaluator, depth - 1, alpha, beta);
             board.undoMove(move);
             if (value < beta) beta = value;
             if (beta <= alpha) break;
@@ -72,14 +72,19 @@ int Agent::alphabeta(Board &board, player p, player maximising, const Evaluator 
 }
 
 
-Move Agent::getBestMove(Board &board, player p, const Evaluator &evaluator, int depth) {
+Move Agent::getBestMove(Board &board, player p, const Evaluator &evaluator, int depth, bool useAlphaBeta) {
     auto moves = board.getLegalMoves(p);
     Move bestMove = moves[0];
     int bestValue = INT_MIN;
 
     for (auto move : moves) {
         board.makeMove(move);
-        int value = minimax(board, p == white_player ? black_player : white_player, p, evaluator, depth - 1);
+        int value = 0;
+        if (useAlphaBeta) {
+            value = alphaBeta(board, p == white_player ? black_player : white_player, p, evaluator, depth - 1);
+        } else {
+            value = miniMax(board, p == white_player ? black_player : white_player, p, evaluator, depth - 1);
+        }
         board.undoMove(move);
         if (value > bestValue) {
             bestValue = value;

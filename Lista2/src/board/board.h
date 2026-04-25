@@ -4,6 +4,7 @@
 
 #ifndef BOARD_H
 #define BOARD_H
+
 #include <ostream>
 #include <vector>
 #include "move.h"
