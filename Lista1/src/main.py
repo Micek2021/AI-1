@@ -12,7 +12,7 @@ import argparse
 import sys
 import datetime
 
-routes, stops, trips, stop_times, calendars, calendar_dates = load_all(Path('data'))
+routes, stops, trips, stop_times, calendars, calendar_dates = load_all(Path(__file__).parent.parent / 'data')
 
 def parse_time(time_str: str) -> int:
     try:
